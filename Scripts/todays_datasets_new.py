@@ -67,12 +67,12 @@ for player, surface in players_info:
             )
             SELECT
                 '{player}' AS Player,
-                AVG(player_win) FILTER (WHERE rn <= 5)  AS Five Match Moving SMA,
-                AVG(player_win) FILTER (WHERE rn <= 20) AS Twenty Match SMA,
-                AVG(player_win) FILTER (WHERE YEAR(Date) = YEAR(current_date)) AS Year Win Percentage,
+                AVG(player_win) FILTER (WHERE rn <= 5)  AS five_sma,
+                AVG(player_win) FILTER (WHERE rn <= 20) AS twenty_sma,
+                AVG(player_win) FILTER (WHERE YEAR(Date) = YEAR(current_date)) AS year_win_pct,
                 COUNT(*) FILTER (WHERE Date >= current_date - INTERVAL 30 DAY
                                 AND Date <  current_date) AS matches_last_30,
-                AVG(player_win) FILTER (WHERE Surface = '{surface}' AND YEAR(Date) = YEAR(Current_Date)) AS Year Surface-Specific Win Rate,
+                AVG(player_win) FILTER (WHERE Surface = '{surface}' AND YEAR(Date) = YEAR(Current_Date)) AS year_surface_winrate,
     
             FROM recent
         """)
