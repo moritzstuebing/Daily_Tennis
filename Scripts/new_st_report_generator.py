@@ -10,6 +10,8 @@ with open(DATA_DIR / "matches_today.json", encoding="utf-8") as f:
     matches = json.load(f)
 with open(DATA_DIR / "player_specifics.json", encoding="utf-8") as f:
     player_specifics = json.load(f)
+with open(DATA_DIR / "today_summaries.json", encoding="utf-8") as f:
+    summaries = json.load(f)
 
 
 
@@ -47,5 +49,10 @@ stats = stats.rename(index={"five_sma" : "Five-Match Win Rate",
                     "year_surface_winrate" : "Surface-Specific Yearly Win Rate"})
 
 st.dataframe(stats)
+
+match_id = matches[i]["Match_ID"]
+st.header("News Summary")
+st.write(summaries.get(str(match_id), "No news summary available for this match."))
+
 
 
