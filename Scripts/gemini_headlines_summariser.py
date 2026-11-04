@@ -31,6 +31,6 @@ summaries = {}
 for item in news.items():
     summaries[item[0]] = summarise(item[0], item[1])
 
-with open(DATA_DIR / "player_summaries.json") as f:
+with open(DATA_DIR / "player_summaries.json", "w") as f:
     json.dump(summaries, f)
 
