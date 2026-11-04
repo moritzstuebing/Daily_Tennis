@@ -13,7 +13,6 @@ players = []
 for match in matches:
     players.extend(match["Player"])
 
-# For each player extract the first 10 news urls that appeared in the last 7d
 url_dict = {}
 for player in players:
     query = quote(f'"{player}"') # double quotes needed to ensure whole name gets searched
