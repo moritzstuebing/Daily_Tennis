@@ -1,13 +1,19 @@
 import shutil
-import kagglehub
 from pathlib import Path
+import kagglehub
 
 ROOT = Path(__file__).resolve().parent.parent
+DATASET = "dissfya/atp-tennis-2000-2023daily-pull"
+FILENAME = "atp_tennis.csv"
 
-path = kagglehub.dataset_download(
-    "dissfya/atp-tennis-2000-2023daily-pull",
-    path="atp_tennis.csv",
-    force_download=True,
-)
-shutil.copy(path, ROOT / "Data" / "atp_tennis.csv")
 
+def download_historical_data(force: bool = True) -> Path:
+    """Download the latest ATP results from Kaggle into Data/ and return the file path."""
+    cached = kagglehub.dataset_download(DATASET, path=FILENAME, force_download=force)
+    dest = ROOT / "Data" / FILENAME
+    shutil.copy(cached, dest)
+    return dest
+
+
+if __name__ == "__main__":
+    print(f"Saved to {download_historical_data()}")

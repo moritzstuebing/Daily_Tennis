@@ -2,85 +2,185 @@ import duckdb as db
 import pandas as pd
 from pathlib import Path
 import json
-from utils import player_names_transformer
+import re
+import unicodedata
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "Data"
+DB_PATH = DATA_DIR.parent / "all_time_db_today.db"
 
-with open(DATA_DIR / "matches_today.json") as f:
-    matches = json.load(f)
+# Letters that have no separate accent mark, so normalize() can't strip them
+SPECIAL_LETTERS = str.maketrans({
+    "đ": "d", "Đ": "D",
+    "ø": "o", "Ø": "O",
+    "ł": "l", "Ł": "L",
+    "ß": "ss",
+    "æ": "ae", "Æ": "Ae",
+})
+
+# The surname, then initials that must contain a dot: "Struff J.L.", "Blanch Dar."
+KAGGLE_NAME = re.compile(r"^(?P<surname>.+?) (?P<initials>[A-Z][a-z]{0,2}\.(?: ?[A-Z][a-z]{0,2}\.?)*)$")
+
+# For names the matcher can't work out
+NAME_OVERRIDES = {"Novak Đoković": "Djokovic N."}
 
 
-# Player-Specific Stats
-players_info = []
+def normalise_name(name: str) -> str:
+    """Removes accents and turns apostrophes into spaces to match the Kaggle names."""
+    name = name.translate(SPECIAL_LETTERS)
+    name = unicodedata.normalize("NFKD", name)
+    name = "".join(char for char in name if not unicodedata.combining(char))
+    return name.replace("'", " ").replace("’", " ")
 
-for match in matches:
-    players_info.append((player_names_transformer(match["Player"][0]), match["Surface"]))
-    players_info.append((player_names_transformer(match["Player"][1]), match["Surface"]))
 
-con = db.connect("all_time_db_today.db")
+def load_kaggle_names() -> list:
+    """Returns every Kaggle player name, split into surname and initials, with their latest match date."""
+    rows = db.sql(f"""
+        SELECT TRIM(name), MAX(Date)
+        FROM (SELECT Player_1 AS name, Date FROM read_csv_auto('{DATA_DIR.as_posix()}/atp_tennis.csv')
+              UNION ALL
+              SELECT Player_2, Date FROM read_csv_auto('{DATA_DIR.as_posix()}/atp_tennis.csv'))
+        GROUP BY 1
+    """).fetchall()
 
-con.sql("""
-CREATE OR REPLACE TABLE raw_matches AS
-SELECT * FROM read_csv_auto('./Data/atp_tennis.csv')
-""")
+    kaggle_names = []
+    for name, last_played in rows:
+        parts = KAGGLE_NAME.match(name)
+        if parts:
+            kaggle_names.append({
+                "name": name,
+                "surname": re.split(r"[ -]", parts["surname"].lower()),
+                "initials": [i.lower() for i in re.findall(r"[A-Z][a-z]*", parts["initials"])],
+                "last_played": last_played,
+            })
+    return kaggle_names
 
-rows = []
 
-for player, surface in players_info:
+def find_kaggle_name(api_name: str, kaggle_names: list) -> str | None:
+    """Returns the most recently active Kaggle name that fits the API name, or None."""
+    if api_name in NAME_OVERRIDES:
+        return NAME_OVERRIDES[api_name]
 
-    con.sql(f"""
-        CREATE OR REPLACE TABLE "{player}" AS 
-        SELECT * FROM raw_matches
-        WHERE Player_1 = '{player}'
-        OR Player_2 = '{player}'
-    """)
-    
-    con.sql(f"""
-            CREATE OR REPLACE TABLE "{player}" AS
-            SELECT *,
-            CASE WHEN Player_1 = '{player}' THEN Player_2 ELSE Player_1 END AS Opponent,
-            CASE WHEN Player_1 = '{player}' THEN Pts_1 ELSE Pts_2 END AS player_pts,
-            CASE WHEN Player_1 = '{player}' THEN Pts_2 ELSE Pts_1 END AS opp_pts,
-            CASE WHEN Player_1 = '{player}' THEN Rank_1 ELSE Rank_2 END AS player_rank,
-            CASE WHEN Player_1 = '{player}' THEN Rank_2 ELSE Rank_1 END AS opp_Rank,
-            CASE WHEN Winner = '{player}' THEN 1 ELSE 0 END AS player_win,
-            CASE WHEN Court = 'Outdoor' THEN 1 ELSE 0 END AS is_outdoor,
-            CASE WHEN "Best of" = 5 THEN 1 ELSE 0 END AS is_five_sets
-            FROM "{player}"
-            """)
-    
-    con.sql(f"""
-            CREATE OR REPLACE TABLE "{player}" AS
-            SELECT * EXCLUDE (Pts_1, Pts_2, Odd_1, Odd_2, Rank_1, Rank_2, Score)
-            FROM "{player}"
-            """)
-    
-        # New table with rolling/engineered features
-    
-    con.sql(f"""
-            CREATE OR REPLACE TABLE "{player}_current" AS
-            WITH recent AS (
+    words = re.split(r"[ -]+", normalise_name(api_name).lower().strip())
+    matches = []
+    for kaggle in kaggle_names:
+        n = len(kaggle["surname"])
+        given = words[:-n]
+        if (words[-n:] == kaggle["surname"]
+                and len(kaggle["initials"]) <= len(given)
+                and all(g.startswith(i) for g, i in zip(given, kaggle["initials"]))):
+            matches.append(kaggle)
+
+    return max(matches, key=lambda k: k["last_played"])["name"] if matches else None
+
+
+def names_formatter(today_matches: list) -> list:
+    """Reformats the live_tennis_api player names into the Kaggle ATP format."""
+    kaggle_names = load_kaggle_names()
+
+    for match in today_matches:
+        formatted = []
+        for player in match["Player"]:
+            kaggle_name = find_kaggle_name(player, kaggle_names)
+            if kaggle_name is None:
+                print(f"WARNING: no Kaggle match for {player}")
+                kaggle_name = normalise_name(player)
+            formatted.append(kaggle_name)
+        match["Player"] = formatted
+
+    return today_matches
+
+
+def create_player_datasets(matches: list) -> pd.DataFrame:
+
+    """
+        Builds the engineered player features for today's matches.
+
+        Expects matches whose player names are already in Kaggle format (see names_formatter).
+        Returns one dataframe with a row per player and saves it to Data/player_specifics.json.
+        Each player's match-level history is kept in the player_match_history table in the database.
+    """
+
+    # One row per player, keeping today's surface for the features below
+    todays_players = pd.DataFrame(
+        [(player, match["Surface"])
+         for match in matches
+         for player in match["Player"]],
+        columns=["Player", "Today_Surface"],
+        dtype="object",
+    )
+    todays_players["player_order"] = range(len(todays_players))
+
+    with db.connect(str(DB_PATH)) as con:
+        con.register("todays_players", todays_players)
+
+        con.sql(f"""
+        CREATE OR REPLACE TABLE raw_matches AS
+        SELECT * FROM read_csv_auto('{DATA_DIR.as_posix()}/atp_tennis.csv')
+        """)
+
+        # Every historical match for today's players, one row per player per match
+        con.sql("""
+            CREATE OR REPLACE TABLE player_match_history AS
+            SELECT
+                t.Player,
+                m.* EXCLUDE (Pts_1, Pts_2, Odd_1, Odd_2, Rank_1, Rank_2, Score),
+                CASE WHEN m.Player_1 = t.Player THEN m.Player_2 ELSE m.Player_1 END AS Opponent,
+                CASE WHEN m.Player_1 = t.Player THEN m.Pts_1 ELSE m.Pts_2 END AS player_pts,
+                CASE WHEN m.Player_1 = t.Player THEN m.Pts_2 ELSE m.Pts_1 END AS opp_pts,
+                CASE WHEN m.Player_1 = t.Player THEN m.Rank_1 ELSE m.Rank_2 END AS player_rank,
+                CASE WHEN m.Player_1 = t.Player THEN m.Rank_2 ELSE m.Rank_1 END AS opp_Rank,
+                CASE WHEN m.Winner = t.Player THEN 1 ELSE 0 END AS player_win,
+                CASE WHEN m.Court = 'Outdoor' THEN 1 ELSE 0 END AS is_outdoor,
+                CASE WHEN m."Best of" = 5 THEN 1 ELSE 0 END AS is_five_sets
+            FROM (SELECT DISTINCT Player FROM todays_players) t
+            JOIN raw_matches m
+                ON t.Player = m.Player_1 OR t.Player = m.Player_2
+        """)
+
+        # Rolling/engineered features
+        player_features = con.sql("""
+            WITH player_matches AS (
                 SELECT
-                    *,
-                    row_number() OVER (ORDER BY Date DESC) AS rn
-                FROM "{player}"
+                    t.player_order,
+                    t.Player,
+                    t.Today_Surface,
+                    h.Surface,
+                    h.Date,
+                    h.player_win,
+                    row_number() OVER (PARTITION BY t.player_order ORDER BY h.Date DESC) AS rn
+                FROM todays_players t
+                LEFT JOIN player_match_history h
+                    ON t.Player = h.Player
             )
             SELECT
-                '{player}' AS Player,
+                Player,
                 AVG(player_win) FILTER (WHERE rn <= 5)  AS five_sma,
                 AVG(player_win) FILTER (WHERE rn <= 20) AS twenty_sma,
                 AVG(player_win) FILTER (WHERE YEAR(Date) = YEAR(current_date)) AS year_win_pct,
                 COUNT(*) FILTER (WHERE Date >= current_date - INTERVAL 30 DAY
                                 AND Date <  current_date) AS matches_last_30,
-                AVG(player_win) FILTER (WHERE Surface = '{surface}' AND YEAR(Date) = YEAR(Current_Date)) AS year_surface_winrate,
-    
-            FROM recent
-        """)
+                AVG(player_win) FILTER (WHERE Surface = Today_Surface AND YEAR(Date) = YEAR(current_date)) AS year_surface_winrate
+            FROM player_matches
+            GROUP BY player_order, Player
+            ORDER BY player_order
+        """).df()
 
-    rows.append(con.sql(f'SELECT * FROM "{player}_current"').df().to_dict(orient="records"))
-    
+    # Blank stats become null, which is valid JSON (NaN is not)
+    records = player_features.astype(object).where(player_features.notna(), None).to_dict(orient="records")
 
-with open(DATA_DIR / "player_specifics.json", "w", encoding="UTF-8") as f:
-    json.dump(rows, f)
+    # new_st_report_generator.py reads this as player_specifics[2*i][0], so each player is a one-item list
+    with open(DATA_DIR / "player_specifics.json", "w", encoding="UTF-8") as f:
+        json.dump([[record] for record in records], f)
 
-    
+    return player_features
+
+
+def main():
+    with open(DATA_DIR / "matches_today.json", encoding="UTF-8") as f:
+        matches_today = json.load(f)
+    matches_today = names_formatter(matches_today)
+    create_player_datasets(matches_today)
+
+
+if __name__ == "__main__":
+    main()
