@@ -8,11 +8,14 @@ FILENAME = "atp_tennis.csv"
 
 
 def download_historical_data(force: bool = True) -> Path:
-    """Download the latest ATP results from Kaggle into Data/ and return the file path."""
+    
+    """
+        Download the latest ATP results from Kaggle into Data/ and return the file path.
+    """
+
     cached = kagglehub.dataset_download(DATASET, path=FILENAME, force_download=force)
     dest = ROOT / "Data" / FILENAME
     shutil.copy(cached, dest)
-    return dest
 
 
 if __name__ == "__main__":

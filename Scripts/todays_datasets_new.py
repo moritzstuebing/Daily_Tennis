@@ -8,6 +8,8 @@ import unicodedata
 DATA_DIR = Path(__file__).resolve().parent.parent / "Data"
 DB_PATH = DATA_DIR.parent / "all_time_db_today.db"
 
+tourn_lookup = pd.read_csv(DATA_DIR / "tournament_lookup.csv")
+
 # Letters that have no separate accent mark, so normalize() can't strip them
 SPECIAL_LETTERS = str.maketrans({
     "đ": "d", "Đ": "D",
@@ -89,6 +91,24 @@ def names_formatter(today_matches: list) -> list:
 
     return today_matches
 
+def tournament_formatter(today_matches: list, tourn_lookup: pd.DataFrame) -> list:
+
+    """
+        Turns the tournament entries of the today_matches data into Kaggle names.
+    """
+    mapping = dict(zip(tourn_lookup["API_Name"], tourn_lookup["Dataset_Name"]))
+
+    for match in today_matches:
+        api_name = match["Tournament"]
+        if api_name in mapping:
+            match["Tournament"] = mapping[api_name]
+        else:
+            print(f"Warning: no Kaggle name for tournament '{api_name}'")
+
+    return today_matches
+    
+def formatting(today_matches: list, tourn_lookup: pd.DataFrame) -> list:
+    return tournament_formatter(names_formatter(today_matches), tourn_lookup)
 
 def create_player_datasets(matches: list) -> pd.DataFrame:
 
@@ -174,12 +194,80 @@ def create_player_datasets(matches: list) -> pd.DataFrame:
 
     return player_features
 
+def create_h2h_datasets(matches):
+    
+    """
+        Takes all matches happening today and forms head-to-head data.
+    """
+
+    todays_matches = pd.DataFrame(
+            [(match["Player"][0], match["Player"][1], match["Surface"], match["Tournament"])
+             for match in matches
+             ],
+            columns=["Player_1", "Player_2", "Today_Surface", "Today_Tournament"],
+            dtype="object",
+        )
+    todays_matches["match_order"] = range(len(todays_matches))
+
+    with db.connect(str(DB_PATH)) as con:
+        con.register("todays_matches", todays_matches)
+
+        con.sql(f"""
+                CREATE OR REPLACE TABLE raw_matches AS
+                SELECT * FROM read_csv_auto('{DATA_DIR.as_posix()}/atp_tennis.csv')
+                """)
+
+        con.sql("""
+        CREATE OR REPLACE TABLE historical_matchups AS (
+            SELECT 
+                m.match_order, 
+                m.Player_1, 
+                m.Player_2,
+                m.Today_Surface,
+                m.Today_Tournament,
+                h.* EXCLUDE (Player_1, Player_2, Pts_1, Pts_2, Odd_1, Odd_2, Rank_1, Rank_2, Score)
+            FROM todays_matches m
+            LEFT JOIN raw_matches h
+                ON ((m.Player_1 = h.Player_1) AND (m.Player_2 = h.Player_2))
+                OR ((m.Player_1 = h.Player_2) AND (m.Player_2 = h.Player_1))
+        )
+        """)
+
+        h2h_features = con.sql("""
+        WITH t AS (
+            SELECT 
+                match_order, Player_1, Player_2, Surface, Tournament, Today_Surface, Today_Tournament,
+                CASE WHEN Winner = Player_1 THEN 1 ELSE 0 END AS p1_win,
+                CASE WHEN Winner = Player_2 THEN 1 ELSE 0 END AS p2_win
+            FROM historical_matchups)
+            SELECT 
+                Player_1, 
+                Player_2,
+                COUNT(*) AS matches_played,
+                SUM(p1_win) AS p1_win_total,
+                SUM(p2_win) AS p2_win_total,
+                SUM(p1_win) FILTER(WHERE Surface = Today_Surface) AS p1_win_total_surf,
+                SUM(p2_win) FILTER(WHERE Surface = Today_Surface) AS p1_win_total_surf,
+                SUM(p1_win) FILTER(WHERE Tournament = Today_Tournament) AS p1_tourn_win,
+                SUM(p2_win) FILTER(WHERE Tournament = Today_Tournament) AS p2_tourn_win
+            FROM t
+                GROUP BY match_order, Player_1, Player_2
+                ORDER BY match_order
+        """).df()
+
+    records = h2h_features.astype(object).where(h2h_features.notna(), None).to_dict(orient="records")
+
+    with open(DATA_DIR / "today_h2h_data.json", "w") as f:
+        json.dump(records, f)
+
+    return h2h_features
 
 def main():
     with open(DATA_DIR / "matches_today.json", encoding="UTF-8") as f:
         matches_today = json.load(f)
-    matches_today = names_formatter(matches_today)
+    matches_today = formatting(matches_today, tourn_lookup)
     create_player_datasets(matches_today)
+    create_h2h_datasets(matches_today)
 
 
 if __name__ == "__main__":

@@ -39,17 +39,14 @@ def get_news(players):
     return url_dict
 
 
-
 def get_headlines(matches):
 
     return get_news(player_names(matches))
 
-
-
 def main():
     with open(DATA_DIR / "matches_today.json") as f:
         matches = json.load(f)
-    news = get_news(matches)
+    news = get_news(player_names(matches))
     with open(DATA_DIR / "news_urls.json", "w") as f:
         json.dump(news, f, indent=2)
 

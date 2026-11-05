@@ -81,6 +81,26 @@ def player_names_transformer(name):
 
     return new_name
 
+import unicodedata
+
+# Letters that have no separate accent mark, so normalize() can't strip them
+SPECIAL_LETTERS = str.maketrans({
+    "đ": "d", "Đ": "D",
+    "ø": "o", "Ø": "O",
+    "ł": "l", "Ł": "L",
+    "ß": "ss",
+    "æ": "ae", "Æ": "Ae",
+})
+
+
+def normalise_name(name: str) -> str:
+    """Removes accents and turns apostrophes into spaces to match the Kaggle names."""
+    name = name.translate(SPECIAL_LETTERS)
+    name = unicodedata.normalize("NFKD", name)
+    name = "".join(char for char in name if not unicodedata.combining(char))
+    return name.replace("'", " ").replace("’", " ")
+
+
 # Claude system prompts
 
 SYSTEM = """You are a highly-skilled tennis analyst that researches pre-match tennis

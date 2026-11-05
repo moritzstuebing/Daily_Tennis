@@ -11,24 +11,31 @@ from pathlib import Path
 load_dotenv()
 base = "https://api.livetennisapi.com/api/public/v1"
 HEADERS = {"X-API-Key": os.getenv("LIVE_TENNIS_API_KEY")}
-
-# Obtain json file for today's matches from API, and extract the information we want
-today = datetime.now(timezone.utc).date().isoformat()
-re = requests.get(f"{base}/matches", headers=HEADERS, 
-                  params={"status" : "upcoming",
-                          "tour" : "atp",
-                          "draw" : "singles",
-                          "from" : f"{today}",
-                          "to" : f"{today}"}).json()
-data = data_extractor(re["data"])
-
-# Load the json file to our datasets
 DATA_DIR = Path(__file__).resolve().parent.parent / "Data"
 DATA_DIR.mkdir(exist_ok=True) # makes folder if missing
-with open(DATA_DIR / 'matches_today.json', "w") as file:
-    json.dump(data, file)
 
-"""
-I should eventually use the live_tennis_api to extract historical information aswell, since it
-is more up to date
-"""
+def todays_matches_extraction(date=None):
+
+    """
+        Uses the Live Tennis API to extract all matches today
+    """
+
+    if date is None:
+        date = datetime.now(timezone.utc).date().isoformat()
+    
+    re = requests.get(f"{base}/matches", headers=HEADERS, 
+                            params={"status" : "upcoming",
+                                    "tour" : "atp",
+                                    "draw" : "singles",
+                                    "from" : f"{date}",
+                                    "to" : f"{date}"}).json()
+    data = data_extractor(re["data"])
+    return data
+
+def main():
+    data = todays_matches_extraction()
+    with open(DATA_DIR / 'matches_today.json', "w") as file:
+        json.dump(data, file)
+
+if __name__ == "__main__":
+    main()
