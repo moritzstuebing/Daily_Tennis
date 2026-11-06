@@ -25,21 +25,30 @@ def report_generator(today_matches, player_features, h2h_features, news_summarie
 
     st.dataframe({k : today_matches[i][k] for k in ["Player", "Age", "Nationality", "Points", "Hand", "Ranking"]})
 
-    h2h_data = h2h_features[i]
-    st.write(f"{today_matches[i]["Player"][0]} and {today_matches[i]["Player"][1]} have played against "
-              f"each other {h2h_data["matches_played"]} times. The overall head-to-head record is"
-              f"{h2h_data["Player_1"]} {h2h_data["p1_win_total"]} - {h2h_data["p2_win_total"]} {h2h_data["Player_2"]}."
-                )
-    
-    if h2h_data["p1_win_total_surf"] != 0:
-        st.write(f"On {today_matches[i]["Surface"]}, the record is {h2h_data["Player_1"]} {h2h_data["p1_win_total_surf"]} - {h2h_data["p2_win_total_surf"]} {h2h_data["Player_2"]}")
-    else:
-        st.write(f"{today_matches[i]["Player"][0]} and {today_matches[i]["Player"][1]} have not played against each other on {today_matches[i]["Surface"]}.")
+    p1, p2 = today_matches[i]["Player"]
+    surface = today_matches[i]["Surface"]
+    tournament = today_matches[i]["Tournament"]
+    h = h2h_features[i]
 
-    if h2h_data["p1_win_total_tourn"] != 0:
-        st.write(f"In {today_matches[i]["Tournament"]}, the record is {h2h_data["Player_1"]} {h2h_data["p1_win_total_tourn"]} - {h2h_data["p2_win_total_tourn"]} {h2h_data["Player_2"]}")
+    lines = [
+    f"{p1} and {p2} have played each other {h['matches_played']} times. "
+    f"The overall head-to-head record is {p1} {h['p1_win_total']} - "
+    f"{h['p2_win_total']} {p2}."
+    ]
+
+    if h["p1_win_total_surf"] + h["p2_win_total_surf"] > 0:
+        lines.append(f"On {surface}, the record is {p1} {h['p1_win_total_surf']} - "
+                 f"{h['p2_win_total_surf']} {p2}.")
     else:
-        st.write(f"{today_matches[i]["Player"][0]} and {today_matches[i]["Player"][1]} have not played against each other in {today_matches[i]["Tournament"]}.")
+        lines.append(f"They have not played each other on {surface}.")
+
+    if h["p1_tourn_win"] + h["p2_tourn_win"] > 0:
+        lines.append(f"At {tournament}, the record is {p1} {h['p1_tourn_win']} - "
+                 f"{h['p2_tourn_win']} {p2}.")
+    else:
+        lines.append(f"They have not played each other at {tournament}.")
+
+    st.write(" ".join(lines))
 
     geolocator = Nominatim(user_agent="tennis_prediction")
     location = geolocator.geocode(today_matches[i]["Tournament"])
