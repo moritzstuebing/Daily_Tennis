@@ -58,7 +58,7 @@ def report_generator(today_matches, player_features, h2h_features, news_summarie
 def main():
     with open(DATA_DIR / "matches_today.json", encoding="utf-8") as f:
         today_matches = json.load(f)
-    with open(DATA_DIR / "player_specifics.json", encoding="utf-8") as f:
+    with open(DATA_DIR / "player_features.json", encoding="utf-8") as f:
         player_features = json.load(f)
     with open(DATA_DIR / "news_summaries.json", encoding="utf-8") as f:
         news_summaries = json.load(f)
