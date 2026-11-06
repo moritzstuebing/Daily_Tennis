@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 from urllib.parse import quote
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "Data"
+DATA_DIR = Path(__file__).resolve().parent.parent.parent / "Data"
 with open(DATA_DIR / "matches_today.json") as f:
     matches = json.load(f)
 

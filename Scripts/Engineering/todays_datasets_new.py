@@ -5,7 +5,7 @@ import json
 import re
 import unicodedata
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "Data"
+DATA_DIR = Path(__file__).resolve().parent.parent.parent / "Data"
 DB_PATH = DATA_DIR.parent / "all_time_db_today.db"
 
 tourn_lookup = pd.read_csv(DATA_DIR / "tournament_lookup.csv")
@@ -257,7 +257,7 @@ def create_h2h_datasets(matches):
 
     records = h2h_features.astype(object).where(h2h_features.notna(), None).to_dict(orient="records")
 
-    with open(DATA_DIR / "today_h2h_data.json", "w") as f:
+    with open(DATA_DIR / "h2h_features.json", "w") as f:
         json.dump(records, f)
 
     return h2h_features

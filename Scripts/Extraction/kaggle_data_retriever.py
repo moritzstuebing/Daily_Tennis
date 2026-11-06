@@ -2,7 +2,7 @@ import shutil
 from pathlib import Path
 import kagglehub
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 DATASET = "dissfya/atp-tennis-2000-2023daily-pull"
 FILENAME = "atp_tennis.csv"
 
@@ -16,6 +16,8 @@ def download_historical_data(force: bool = True) -> Path:
     cached = kagglehub.dataset_download(DATASET, path=FILENAME, force_download=force)
     dest = ROOT / "Data" / FILENAME
     shutil.copy(cached, dest)
+
+    return dest
 
 
 if __name__ == "__main__":

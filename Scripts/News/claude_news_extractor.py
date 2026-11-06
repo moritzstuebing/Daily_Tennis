@@ -14,7 +14,7 @@ client = anthropic.Anthropic()
 
 # All matches -> Extract Summary -> Return json ready for dashboard
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "Data"
+DATA_DIR = Path(__file__).resolve().parent.parent.parent / "Data"
 
 with open(DATA_DIR / "matches_today.json") as f:
     matches_today = json.load(f)

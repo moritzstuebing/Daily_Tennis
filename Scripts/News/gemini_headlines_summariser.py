@@ -4,11 +4,8 @@ from pathlib import Path
 import json
 
 load_dotenv()
-DATA_DIR = Path(__file__).resolve().parent.parent / "Data"
+DATA_DIR = Path(__file__).resolve().parent.parent.parent / "Data"
 client = genai.Client()
-
-with open(DATA_DIR / "news_urls.json") as f:
-    news = json.load(f)
 
 SYSTEM = (
     "You summarise recent tennis news for a match-preview page. "
@@ -27,10 +24,23 @@ def summarise(player, articles):
     )
     return interaction.output_text
 
-summaries = {}
-for item in news.items():
-    summaries[item[0]] = summarise(item[0], item[1])
+def summarise_all(news):
+    summaries = {}
+    for item in news.items():
+        summaries[item[0]] = summarise(item[0], item[1])
 
-with open(DATA_DIR / "player_summaries.json", "w") as f:
-    json.dump(summaries, f)
+    return summaries
+
+def main():
+    with open(DATA_DIR / "news_urls.json") as f:
+        news = json.load(f)
+
+    summaries = summarise_all(news)
+
+    with open(DATA_DIR / "player_summaries.json", "w") as f:
+        json.dump(summaries, f)
+
+
+if __name__ == "__main__":
+    main()
 
