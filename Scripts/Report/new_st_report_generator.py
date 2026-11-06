@@ -60,7 +60,7 @@ def main():
         today_matches = json.load(f)
     with open(DATA_DIR / "player_specifics.json", encoding="utf-8") as f:
         player_features = json.load(f)
-    with open(DATA_DIR / "today_summaries.json", encoding="utf-8") as f:
+    with open(DATA_DIR / "news_summaries.json", encoding="utf-8") as f:
         news_summaries = json.load(f)
     with open(DATA_DIR / "h2h_features.json", encoding="utf-8") as f:
         h2h_features = json.load(f)

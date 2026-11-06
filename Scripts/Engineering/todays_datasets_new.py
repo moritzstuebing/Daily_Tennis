@@ -188,10 +188,6 @@ def create_player_datasets(matches: list) -> pd.DataFrame:
     # Blank stats become null, which is valid JSON (NaN is not)
     records = player_features.astype(object).where(player_features.notna(), None).to_dict(orient="records")
 
-    # new_st_report_generator.py reads this as player_specifics[2*i][0], so each player is a one-item list
-    with open(DATA_DIR / "player_specifics.json", "w", encoding="UTF-8") as f:
-        json.dump([[record] for record in records], f)
-
     return records
 
 def create_h2h_datasets(matches):
@@ -256,9 +252,6 @@ def create_h2h_datasets(matches):
         """).df()
 
     records = h2h_features.astype(object).where(h2h_features.notna(), None).to_dict(orient="records")
-
-    with open(DATA_DIR / "h2h_features.json", "w") as f:
-        json.dump(records, f)
 
     return records
 
