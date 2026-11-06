@@ -192,7 +192,7 @@ def create_player_datasets(matches: list) -> pd.DataFrame:
     with open(DATA_DIR / "player_specifics.json", "w", encoding="UTF-8") as f:
         json.dump([[record] for record in records], f)
 
-    return player_features
+    return records
 
 def create_h2h_datasets(matches):
     
@@ -260,7 +260,7 @@ def create_h2h_datasets(matches):
     with open(DATA_DIR / "h2h_features.json", "w") as f:
         json.dump(records, f)
 
-    return h2h_features
+    return records
 
 def main():
     with open(DATA_DIR / "matches_today.json", encoding="UTF-8") as f:

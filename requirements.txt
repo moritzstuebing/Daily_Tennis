@@ -1,0 +1,14 @@
+# Streamlit report (Scripts/Report/new_st_report_generator.py)
+streamlit==1.66.0
+pandas==3.0.6
+geopy==2.5.0
+
+# Data pipeline (Scripts/pipeline.py)
+anthropic==1.17.0
+duckdb==1.5.6
+feedparser==6.0.14
+google-genai==2.34.0
+kagglehub==1.0.2
+pydantic==2.14.1
+python-dotenv==1.2.4
+requests==2.34.2
