@@ -231,25 +231,19 @@ def create_h2h_datasets(matches):
         """)
 
         h2h_features = con.sql("""
-        WITH t AS (
-            SELECT 
-                match_order, Player_1, Player_2, Surface, Tournament, Today_Surface, Today_Tournament,
-                CASE WHEN Winner = Player_1 THEN 1 ELSE 0 END AS p1_win,
-                CASE WHEN Winner = Player_2 THEN 1 ELSE 0 END AS p2_win
-            FROM historical_matchups)
-            SELECT 
-                Player_1, 
+            SELECT
+                Player_1,
                 Player_2,
-                COUNT(*) AS matches_played,
-                SUM(p1_win) AS p1_win_total,
-                SUM(p2_win) AS p2_win_total,
-                SUM(p1_win) FILTER(WHERE Surface = Today_Surface) AS p1_win_total_surf,
-                SUM(p2_win) FILTER(WHERE Surface = Today_Surface) AS p1_win_total_surf,
-                SUM(p1_win) FILTER(WHERE Tournament = Today_Tournament) AS p1_tourn_win,
-                SUM(p2_win) FILTER(WHERE Tournament = Today_Tournament) AS p2_tourn_win
-            FROM t
-                GROUP BY match_order, Player_1, Player_2
-                ORDER BY match_order
+                COUNT(Winner)                                                               AS matches_played,
+                COUNT(*) FILTER (WHERE Winner = Player_1)                                   AS p1_win_total,
+                COUNT(*) FILTER (WHERE Winner = Player_2)                                   AS p2_win_total,
+                COUNT(*) FILTER (WHERE Winner = Player_1 AND Surface = Today_Surface)       AS p1_win_total_surf,
+                COUNT(*) FILTER (WHERE Winner = Player_2 AND Surface = Today_Surface)       AS p2_win_total_surf,
+                COUNT(*) FILTER (WHERE Winner = Player_1 AND Tournament = Today_Tournament) AS p1_tourn_win,
+                COUNT(*) FILTER (WHERE Winner = Player_2 AND Tournament = Today_Tournament) AS p2_tourn_win
+            FROM historical_matchups
+            GROUP BY match_order, Player_1, Player_2
+            ORDER BY match_order
         """).df()
 
     records = h2h_features.astype(object).where(h2h_features.notna(), None).to_dict(orient="records")

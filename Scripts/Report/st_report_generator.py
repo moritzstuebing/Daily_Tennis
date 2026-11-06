@@ -25,6 +25,18 @@ def report_generator(today_matches, player_features, h2h_features, news_summarie
 
     st.dataframe({k : today_matches[i][k] for k in ["Player", "Age", "Nationality", "Points", "Hand", "Ranking"]})
 
+    h2h_data = h2h_features[i]
+    st.write(f"{h2h_data["Player_1"]} and {h2h_data["Player_2"]} have played against "
+              f"each other {h2h_data["matches_played"]} times. The overall head-to-head record is"
+              f"{h2h_data["Player_1"]} {h2h_data["p1_win_total"]} - {h2h_data["p2_win_total"]} {h2h_data["Player_2"]}."
+                )
+    
+    if h2h_data["p1_win_total_surf"]:
+        st.write(f"On {today_matches[i]["Surface"]}, the record is {h2h_data["Player_1"]} {h2h_data["p1_win_total_surf"]} - {h2h_data["p2_win_total_surf"]} {h2h_data["Player_2"]}")
+
+    if h2h_data["p1_win_total_tourn"]:
+        st.write(f"In {today_matches[i]["Tournament"]}, the record is {h2h_data["Player_1"]} {h2h_data["p1_win_total_tourn"]} - {h2h_data["p2_win_total_tourn"]} {h2h_data["Player_2"]}")
+
     geolocator = Nominatim(user_agent="tennis_prediction")
     location = geolocator.geocode(today_matches[i]["Tournament"])
 
