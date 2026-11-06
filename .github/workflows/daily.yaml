@@ -41,5 +41,6 @@ jobs:
           git add Data/
           git diff --staged --quiet && exit 0
           git commit -m "Daily data update $(date -u +%F)"
-          git pull --rebase -X theirs
+          git status --short
+          git pull --rebase --autostash -X theirs
           git push
