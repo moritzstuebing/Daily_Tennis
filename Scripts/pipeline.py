@@ -29,6 +29,7 @@ def pipeline(date=None):
         json.dump(summaries, f)
 
     # Feature engineering
+    matches_today = Engineering.todays_datasets_new.formatting(matches_today, Engineering.todays_datasets_new.tourn_lookup)
     h2h_features = Engineering.todays_datasets_new.create_h2h_datasets(matches_today)
     with open(DATA_DIR / "h2h_features.json", "w") as f:
         json.dump(h2h_features, f)

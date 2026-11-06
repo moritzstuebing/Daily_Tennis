@@ -143,6 +143,7 @@ def create_player_datasets(matches: list) -> pd.DataFrame:
             CREATE OR REPLACE TABLE player_match_history AS
             SELECT
                 t.Player,
+                t.player_order,
                 m.* EXCLUDE (Pts_1, Pts_2, Odd_1, Odd_2, Rank_1, Rank_2, Score),
                 CASE WHEN m.Player_1 = t.Player THEN m.Player_2 ELSE m.Player_1 END AS Opponent,
                 CASE WHEN m.Player_1 = t.Player THEN m.Pts_1 ELSE m.Pts_2 END AS player_pts,
@@ -152,7 +153,7 @@ def create_player_datasets(matches: list) -> pd.DataFrame:
                 CASE WHEN m.Winner = t.Player THEN 1 ELSE 0 END AS player_win,
                 CASE WHEN m.Court = 'Outdoor' THEN 1 ELSE 0 END AS is_outdoor,
                 CASE WHEN m."Best of" = 5 THEN 1 ELSE 0 END AS is_five_sets
-            FROM (SELECT DISTINCT Player FROM todays_players) t
+            FROM (SELECT DISTINCT Player, player_order FROM todays_players) t
             JOIN raw_matches m
                 ON t.Player = m.Player_1 OR t.Player = m.Player_2
         """)

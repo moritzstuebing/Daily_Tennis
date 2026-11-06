@@ -32,8 +32,8 @@ def report_generator(today_matches, player_features, h2h_features, news_summarie
 
     st.header("Player-Specific Stats:")
 
-    p1 = player_features[2*i][0]
-    p2 = player_features[2*i + 1][0]
+    p1 = player_features[2*i]
+    p2 = player_features[2*i + 1]
 
     stats = pd.DataFrame({
         p1["Player"]: {k: v for k, v in p1.items() if k != "Player"},
