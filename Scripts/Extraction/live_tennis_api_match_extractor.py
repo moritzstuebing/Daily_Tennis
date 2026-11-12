@@ -2,7 +2,6 @@ from dotenv import load_dotenv
 import os
 import requests
 from datetime import datetime, timezone
-from utils import data_extractor
 import json
 from pathlib import Path
 import pandas as pd
@@ -50,22 +49,30 @@ def todays_matches_extraction(date=None):
         Uses the Live Tennis API to extract all matches today
     """
 
-    if date is None:
-        date = datetime.now(timezone.utc).date().isoformat()
-    
-    re = requests.get(f"{base}/matches", headers=HEADERS, 
+    try:
+        re = requests.get(f"{base}/matches", headers=HEADERS, 
                             params={"status" : "upcoming",
                                     "tour" : "atp",
                                     "draw" : "singles",
                                     "from" : f"{date}",
-                                    "to" : f"{date}"}).json()
-    data = data_extractor(re["data"])
+                                    "to" : f"{date}"})
+        
+    except requests.RequestException as e:
+        raise RuntimeError(f"Request failed: {e}") from e
+
+    if not re.ok:
+        raise RuntimeError(f"HTTP error {re.status_code}: {re.text}")
+    
+    data = data_extractor(re.json()["data"])
     return data
 
 def main():
     data = todays_matches_extraction()
-    with open(DATA_DIR / 'matches_today.json', "w") as file:
-        json.dump(data, file)
+    if data is False:
+        print("No matches on this date")
+    else:
+        with open(DATA_DIR / 'matches_today.json', "w") as file:
+            json.dump(data, file)
 
 if __name__ == "__main__":
     main()
