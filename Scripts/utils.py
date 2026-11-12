@@ -10,8 +10,6 @@ from  dotenv import load_dotenv
 load_dotenv()
 client = anthropic.Anthropic()
 
-today = datetime.now(timezone.utc).date()
-
 def generate_lookup_table(data):
     lookup = (data.sort_values("Date")
               .groupby("Tournament")[["Surface", "Series", "Court"]]
@@ -29,34 +27,6 @@ def log_usage(resp, path="token_log.csv"):
             resp.usage.output_tokens,
             resp.stop_reason,
         ])
-
-def data_extractor(matches):
-
-    """
-        Given the data on today's matches as a json file from the live_tennis_api, extracts 
-        the information we need, and cleans.
-    """
-
-    match_info_list = []
-
-    for match in matches:
-        # all info in (p1, p2) format
-        match_info_dict = {"Match_ID" : match["id"],
-                            "Player" : (match['players']['p1']['name'], match['players']['p2']['name']),
-                           "Age" : ((today - pd.to_datetime(match['players']['p1']['birthday']).date()).days // 365, (today - pd.to_datetime(match['players']['p2']['birthday']).date()).days // 365),
-                           "Nationality" : ((match['players']['p1']['country'] or "").upper(), (match['players']['p2']['country'] or "").upper()),
-                           "Hand" : (match['players']['p1']['hand'], match['players']['p2']['hand']),
-                           "Ranking" : (match['players']['p1']['ranking'], match['players']['p2']['ranking']),
-                           "Points" : (match['players']['p1']['ranking_points'], match['players']['p2']['ranking_points']),
-                           "Tournament" : match['tournament'],
-                           "Tournament_id" : match["id"],
-                           "Surface" : match['surface'].capitalize(),
-                           "Tournament/Round" : match['round'],
-                           "Round" : match['round_code'],
-                           "Is_indoor" : match['indoor']}
-        match_info_list.append(match_info_dict)
-
-    return match_info_list
 
 def match_table_maker(path):
 
