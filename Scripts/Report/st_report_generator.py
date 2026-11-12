@@ -7,7 +7,7 @@ from geopy.geocoders import Nominatim
 
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "Data"
 
-def report_generator(today_matches, player_features, h2h_features, news_summaries):
+def report_generator(today_matches, player_features, h2h_features, news_summaries, status):
 
     """
         Generates the streamlit report given all of the data that has beene extracted.
@@ -16,7 +16,7 @@ def report_generator(today_matches, player_features, h2h_features, news_summarie
     with open(DATA_DIR / "status.json") as f:
         status = json.load(f)
 
-    if not status["ok"]:
+    if not status["status"]:
         st.write(f"Report could not be generated. Reason: {status["message"]}")
 
     else:
@@ -96,8 +96,10 @@ def main():
         news_summaries = json.load(f)
     with open(DATA_DIR / "h2h_features.json", encoding="utf-8") as f:
         h2h_features = json.load(f)
+    with open(DATA_DIR / "status.json", encoding="utf-8") as f:
+        status = json.load(f)
 
-    report_generator(today_matches, player_features, h2h_features, news_summaries)
+    report_generator(today_matches, player_features, h2h_features, news_summaries, status)
 
 if __name__ == "__main__":
     main()
