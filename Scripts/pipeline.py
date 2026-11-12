@@ -75,6 +75,8 @@ def pipeline(date=today):
     with open(DATA_DIR / "player_features.json", "w") as f:
         json.dump(player_features, f)
 
+    write_status(True, "All good", date)
+
     return matches_today, player_features, h2h_features, summaries, player_news_failures
 
 
