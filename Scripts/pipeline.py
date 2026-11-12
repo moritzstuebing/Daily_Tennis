@@ -11,8 +11,8 @@ today = datetime.now(timezone.utc).date().isoformat()
 DATA_DIR = Path(__file__).resolve().parent.parent / "Data"
 
 def write_status(ok, message, run_date):
-    with open(DATA_DIR / "status.json", "w"):
-        json.dump({"status" : ok, "message" : message, "run_date" : run_date})
+    with open(DATA_DIR / "status.json", "w") as f:
+        json.dump({"status" : ok, "message" : message, "run_date" : run_date}, f)
 
 def pipeline(date=today):
 
