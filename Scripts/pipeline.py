@@ -79,7 +79,7 @@ def pipeline(date=today):
 
 
 def main():
-    matches_today, player_features, h2h_features, summaries = pipeline()
+    matches_today, player_features, h2h_features, summaries, news_failures = pipeline()
 
 if __name__ == "__main__":
     main()
