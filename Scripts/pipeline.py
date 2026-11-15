@@ -67,7 +67,7 @@ def pipeline(date=today):
         h2h_features = Engineering.todays_datasets_new.create_h2h_datasets(matches_today)
         player_features = Engineering.todays_datasets_new.create_player_datasets(matches_today)
     except Exception as e:
-        write_status(False, f"Error during feature engineering: {e!r}, date")
+        write_status(False, f"Error during feature engineering: {e!r}", date)
         raise
 
     with open(DATA_DIR / "h2h_features.json", "w") as f:
@@ -81,7 +81,10 @@ def pipeline(date=today):
 
 
 def main():
-    matches_today, player_features, h2h_features, summaries, news_failures = pipeline()
+    try:
+        matches_today, player_features, h2h_features, summaries, news_failures = pipeline()
+    except Exception as e:
+        print(f"Error in main pipeline: {e!r}")
 
 if __name__ == "__main__":
     main()
