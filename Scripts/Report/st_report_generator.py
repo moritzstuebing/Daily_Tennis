@@ -31,6 +31,9 @@ def report_generator(today_matches, player_features, h2h_features, news_summarie
                 range(n_matches),
                 format_func= lambda i: labels[i])
 
+        if not today_matches[i]["Tournament/Round"]:
+            st.write("Tournament data unavailable from API call.")
+
         st.dataframe({k : today_matches[i][k] for k in ["Player", "Age", "Nationality", "Points", "Hand", "Ranking"]})
 
         p1, p2 = today_matches[i]["Player"]
