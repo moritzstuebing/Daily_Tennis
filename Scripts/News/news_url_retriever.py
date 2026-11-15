@@ -5,6 +5,7 @@ import json
 from urllib.parse import quote
 
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "Data"
+HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"}
 
 def player_names(matches):
 
@@ -34,7 +35,7 @@ def get_news(players):
         try:
             query = quote(f'"{player}" tennis')
             url = f"https://news.google.com/rss/search?q={query}%20when%3A7d&hl=en-GB&gl=GB&ceid=GB:en"
-            resp = requests.get(url, timeout=15)
+            resp = requests.get(url, headers=HEADERS, timeout=15)
             resp.raise_for_status()                  # 429 / 503 now raise
 
             d = feedparser.parse(resp.content)
