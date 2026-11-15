@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import json
 from urllib.parse import quote
+import random
 
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "Data"
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"}
@@ -52,7 +53,7 @@ def get_news(players):
             url_dict[player] = []
             failures += 1
 
-        time.sleep(1)  # spacing out requests
+        time.sleep(random.uniform(1, 3))  # spacing out requests
 
     if players and failures == len(players):
         raise RuntimeError("News lookup failed for every player")
