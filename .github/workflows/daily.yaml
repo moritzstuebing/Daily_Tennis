@@ -33,6 +33,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY}}
 
       - name: Commit new data
+        if: always()    # makes sure it runs even if the pipeline errors. ensures status for report
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
