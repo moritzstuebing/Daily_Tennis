@@ -61,12 +61,13 @@ def report_generator(today_matches, player_features, h2h_features, news_summarie
 
         st.write(" ".join(lines))
 
-        try:
-            geolocator = Nominatim(user_agent="tennis_prediction", timeout=10)
-            location = geolocator.geocode(today_matches[i]["Tournament"])
-            st.map(pd.DataFrame({"lat": [location.latitude], "lon": [location.longitude]}), zoom=4)
-        except Exception as e:
-            st.write(f"Map cannot be generated: {e!r}")
+        if today_matches[i]["Tournament"] is not None:
+            try:
+                geolocator = Nominatim(user_agent="tennis_prediction", timeout=10)
+                location = geolocator.geocode(today_matches[i]["Tournament"])
+                st.map(pd.DataFrame({"lat": [location.latitude], "lon": [location.longitude]}), zoom=4)
+            except Exception as e:
+                st.write(f"Map cannot be generated: {e!r}")
 
         st.header("Player-Specific Stats:")
 
