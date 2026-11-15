@@ -25,13 +25,13 @@ def report_generator(today_matches, player_features, h2h_features, news_summarie
 
         n_matches = len(today_matches)
 
-        labels = [f"{match["Player"][0]} vs. {match["Player"][1]}, {match["Tournament/Round"]}" for match in today_matches]
+        labels = [f"{match["Player"][0]} vs. {match["Player"][1]}, {match["Tournament"]}" for match in today_matches]
 
         i = st.selectbox("Select a match",
                 range(n_matches),
                 format_func= lambda i: labels[i])
 
-        if not today_matches[i]["Tournament/Round"]:
+        if not today_matches[i]["Tournament"]:
             st.write("Tournament data unavailable from API call.")
 
         st.dataframe({k : today_matches[i][k] for k in ["Player", "Age", "Nationality", "Points", "Hand", "Ranking"]})
