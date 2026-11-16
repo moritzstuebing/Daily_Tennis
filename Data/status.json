@@ -1,1 +1,1 @@
-{"status": true, "message": "All good", "run_date": "2026-11-15"}
+{"status": false, "message": "Error when extracting news headlines: News lookup failed for every player", "run_date": "2026-11-16"}
