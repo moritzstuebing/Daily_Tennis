@@ -2,6 +2,8 @@ from google import genai
 from dotenv import load_dotenv
 from pathlib import Path
 import json
+import time
+from google.genai import errors
 
 load_dotenv()
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "Data"
@@ -13,21 +15,40 @@ SYSTEM = (
     "withdrawals, form and recent results. If nothing is relevant, say so."
 )
 
-def summarise(player, articles):
+def summarise(player, articles, retries=3):
     headlines = "\n".join(
         f"- {a['title']} ({a['source']}, {a['published']})" for a in articles
     )
-    interaction = client.interactions.create(
-        model="gemini-3.5-flash-lite",
-        system_instruction=SYSTEM,
-        input=f"Recent headlines about {player}:\n{headlines}",
-    )
-    return interaction.output_text
+
+    for attempt in range(retries):
+        try:
+            interaction = client.interactions.create(
+            model="gemini-3.5-flash-lite",
+            system_instruction=SYSTEM,
+            input=f"Recent headlines about {player}:\n{headlines}",
+            )
+            text = interaction.output_text
+
+            if not text:
+                raise ValueError("Empty response (maybe blocked)")
+            return text
+
+        except errors.APIError as e:
+            if e.code in (429, 503) and attempt < retries - 1:
+                time.sleep(2 ** attempt * 5)
+                continue
+            raise
 
 def summarise_all(news):
     summaries = {}
     for item in news.items():
-        summaries[item[0]] = summarise(item[0], item[1])
+        if item[1]: # only if articles exist
+            try:
+                summaries[item[0]] = summarise(item[0], item[1])
+            except Exception:
+                raise
+        else:
+            summaries[item[0]] = f"No articles for {item[0]}"
 
     return summaries
 
