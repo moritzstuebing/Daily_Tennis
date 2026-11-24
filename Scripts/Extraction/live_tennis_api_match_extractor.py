@@ -16,10 +16,13 @@ adapter = HTTPAdapter(max_retries=retry)
 load_dotenv()
 base = "https://api.livetennisapi.com/api/public/v1"
 HEADERS = {"X-API-Key": os.getenv("LIVE_TENNIS_API_KEY")}
+
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "Data"
 DATA_DIR.mkdir(exist_ok=True) # makes folder if missing
 
 today = datetime.now(timezone.utc).date()
+
+
 
 def data_extractor(matches):
 
@@ -55,17 +58,20 @@ def todays_matches_extraction(date=None):
         Uses the Live Tennis API to extract all matches today
     """
 
+    params={"status" : "upcoming",
+                                        "tour" : "atp",
+                                        "draw" : "singles",
+                                        "from" : f"{date}",
+                                        "to" : f"{date}"}
+
     with requests.Session() as s:
         s.mount("https://", adapter)
         s.mount("http://", adapter)
+        s.headers.update(HEADERS)
+        s.params.update(params)
 
         try:
-            re = s.get(f"{base}/matches", headers=HEADERS, 
-                            params={"status" : "upcoming",
-                                    "tour" : "atp",
-                                    "draw" : "singles",
-                                    "from" : f"{date}",
-                                    "to" : f"{date}"},
+            re = s.get(f"{base}/matches",
                                     timeout=15)
         
         except requests.RequestException as e:
