@@ -53,6 +53,11 @@ def data_extractor(matches):
 
     return match_info_list
 
+"""
+Using a requests Session here. Only real benefit is the retry adapter and easy headers attach.
+Only running once per day so reusing connection doesnt really apply.
+"""
+
 def todays_matches_extraction(date=None):
 
     """

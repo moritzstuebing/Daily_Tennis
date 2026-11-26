@@ -45,8 +45,9 @@ def summarise_all(news):
         if item[1]: # only if articles exist
             try:
                 summaries[item[0]] = summarise(item[0], item[1])
-            except Exception:
-                raise
+            except Exception as e:
+                print(f"Error when summarising headlines for {item[0]}: {e}")
+                summaries[item[0]] = f"Summarisation failed"
         else:
             summaries[item[0]] = f"No articles for {item[0]}"
 

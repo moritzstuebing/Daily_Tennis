@@ -4,6 +4,8 @@ from pathlib import Path
 import json
 from urllib.parse import quote
 import random
+import time
+import requests
 
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "Data"
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"}
@@ -19,11 +21,6 @@ def player_names(matches):
         players.extend(match["Player"])
 
     return players
-
-import time
-import requests
-import feedparser
-from urllib.parse import quote
 
 def get_news(players):
     """
