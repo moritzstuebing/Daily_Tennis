@@ -8,10 +8,6 @@ import pandas as pd
 from urllib3 import Retry
 from requests.adapters import HTTPAdapter
 
-retry = Retry(total=10, backoff_factor=1, status_forcelist=[429] + range(500, 600),
-            respect_retry_after_header=True)
-adapter = HTTPAdapter(max_retries=retry)
-
 # Load API key
 load_dotenv()
 base = "https://api.livetennisapi.com/api/public/v1"
@@ -21,6 +17,11 @@ DATA_DIR = Path(__file__).resolve().parent.parent.parent / "Data"
 DATA_DIR.mkdir(exist_ok=True) # makes folder if missing
 
 today = datetime.now(timezone.utc).date()
+
+# Requests session retry configuration
+retry = Retry(total=10, backoff_factor=1, status_forcelist=[429] + range(500, 600),
+            respect_retry_after_header=True)
+adapter = HTTPAdapter(max_retries=retry)
 
 
 
@@ -59,10 +60,10 @@ def todays_matches_extraction(date=None):
     """
 
     params={"status" : "upcoming",
-                                        "tour" : "atp",
-                                        "draw" : "singles",
-                                        "from" : f"{date}",
-                                        "to" : f"{date}"}
+            "tour" : "atp",
+            "draw" : "singles",
+            "from" : f"{date}",
+            "to" : f"{date}"}
 
     with requests.Session() as s:
         s.mount("https://", adapter)
@@ -72,7 +73,7 @@ def todays_matches_extraction(date=None):
 
         try:
             re = s.get(f"{base}/matches",
-                                    timeout=15)
+                                    timeout=15).json()
         
         except requests.RequestException as e:
             raise RuntimeError(f"Request failed: {e}") from e
@@ -80,7 +81,7 @@ def todays_matches_extraction(date=None):
         if not re.ok:
             raise RuntimeError(f"HTTP error {re.status_code}: {re.text}")
     
-        data = data_extractor(re.json()["data"])
+        data = data_extractor(re["data"])
     return data
 
 def main():
